@@ -5,7 +5,7 @@
   "functions": {
     "api/[...path].js": {
       "maxDuration": 60,
-      "includeFiles": "server.js"
+      "includeFiles": "lib/server.js"
     }
   },
   "rewrites": [

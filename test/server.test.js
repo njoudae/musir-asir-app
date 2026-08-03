@@ -13,7 +13,7 @@ process.env.DATA_PROVIDER = 'json';
 process.env.ADMIN_PIN = '2468';
 process.env.APP_SECRET = 'test-secret-with-enough-entropy';
 
-const { server, normalizePhone, normalizePlate, ticketStatus } = require('../server');
+const { server, normalizePhone, normalizePlate, ticketStatus } = require('../lib/server');
 
 let baseUrl;
 
