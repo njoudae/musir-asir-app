@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#071b2a">
+  <meta name="description" content="مسير - إصدار وتتبع تذاكر عبور الشاحنات">
+  <title>مُسيّر | تذاكر عبور الشاحنات</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="logo.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://unpkg.com">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="styles.css?v=4">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header hidden" id="app-header">
+      <button class="icon-button hidden" id="back-button" aria-label="رجوع"><span class="back-arrow" aria-hidden="true">←</span></button>
+      <a class="mini-brand" href="#dashboard" aria-label="الرئيسية">
+        <span class="brand-logo brand-logo-small" aria-hidden="true"><img src="musir-logo.jpg" alt=""></span>
+        <span class="brand-name">مُسيّر</span>
+      </a>
+      <div class="header-tools">
+        <div class="language-control compact">
+          <span class="language-globe" aria-hidden="true">🌐</span>
+          <select class="language-select" data-language-select aria-label="اللغة">
+            <option value="ar">العربية</option><option value="en">English</option><option value="ur">اردو</option>
+          </select>
+        </div>
+        <button class="icon-button" id="logout-button" aria-label="تسجيل الخروج">↪</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="screen active auth-screen" id="auth-screen" data-screen="auth">
+        <div class="language-control auth-language">
+          <span class="language-globe" aria-hidden="true">🌐</span>
+          <select class="language-select" data-language-select aria-label="اللغة">
+            <option value="ar">العربية</option><option value="en">English</option><option value="ur">اردو</option>
+          </select>
+        </div>
+        <div class="auth-hero">
+          <div class="brand-logo brand-logo-hero"><img src="musir-logo.jpg" alt="شعار مُسيّر"></div>
+          <h1>مُسيّر</h1>
+          <p>تذاكر عبور آمنة، ومستندات موثقة، وتتبع مباشر لشاحنتك.</p>
+        </div>
+
+        <div class="auth-card surface">
+          <h2>تسجيل الدخول</h2>
+          <p class="muted">اختر طريقة الدخول المناسبة</p>
+          <button class="provider-button nafath" id="nafath-button">
+            <span class="provider-icon">ن</span>
+            <span><strong>الدخول عبر نفاذ</strong><small>سيُفعّل بعد ربط ترخيص الخدمة</small></span>
+            <span>‹</span>
+          </button>
+          <div class="separator"><span>أو</span></div>
+          <form id="phone-form">
+            <label for="phone">رقم الجوال</label>
+            <div class="phone-field">
+              <span dir="ltr">+966</span>
+              <input id="phone" name="phone" inputmode="tel" autocomplete="tel" maxlength="10" placeholder="5XXXXXXXX" required>
+            </div>
+            <button class="primary-button full" type="submit">إرسال رمز التحقق SMS</button>
+          </form>
+          <p class="legal">بالمتابعة أنت توافق على استخدام بياناتك لإصدار التذكرة والتحقق عند نقاط العبور.</p>
+        </div>
+      </section>
+
+      <section class="screen" id="otp-screen" data-screen="otp">
+        <div class="page-intro compact">
+          <div class="step-icon">✉</div>
+          <h1>أدخل رمز التحقق</h1>
+          <p>أرسلنا رمزًا من 6 أرقام إلى <strong id="otp-phone"></strong></p>
+        </div>
+        <form class="surface form-card" id="otp-form">
+          <label for="otp-code">رمز التحقق</label>
+          <input class="otp-input" id="otp-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="• • • • • •" required>
+          <p class="demo-code hidden" id="demo-code"></p>
+          <button class="primary-button full" type="submit">تحقق ودخول</button>
+          <button class="text-button" type="button" id="resend-otp">إعادة إرسال الرمز</button>
+        </form>
+      </section>
+
+      <section class="screen" id="profile-screen" data-screen="profile">
+        <div class="page-intro">
+          <span class="eyebrow">إكمال الحساب</span>
+          <h1>بيانات السائق الأساسية</h1>
+          <p>عند ربط نفاذ ستصل هذه البيانات مباشرة. حاليًا أدخلها مرة واحدة فقط.</p>
+        </div>
+        <form class="surface form-card" id="profile-form">
+          <div class="notice info">لن نستبدل هذه البيانات بنتائج قراءة الصور، لتقليل الأخطاء واستهلاك التحليل.</div>
+          <label for="profile-name">الاسم الكامل</label>
+          <input id="profile-name" autocomplete="name" required placeholder="كما هو مسجل في الهوية">
+          <label for="profile-id">رقم الهوية أو الإقامة</label>
+          <input id="profile-id" inputmode="numeric" maxlength="10" pattern="[0-9]{10}" required placeholder="10 أرقام">
+          <label for="profile-expiry">تاريخ انتهاء الهوية</label>
+          <input id="profile-expiry" type="date" required>
+          <button class="primary-button full" type="submit">حفظ ومتابعة</button>
+        </form>
+      </section>
+
+      <section class="screen" id="dashboard-screen" data-screen="dashboard">
+        <div class="dashboard-hero">
+          <div>
+            <span class="eyebrow light" id="today-label"></span>
+            <h1>مرحبًا، <span id="driver-first-name">سائقنا</span></h1>
+            <p>تابع تذاكرك وأنشئ رحلة عبور جديدة.</p>
+          </div>
+          <div class="avatar" id="driver-avatar">م</div>
+        </div>
+
+        <div class="stats-grid">
+          <article class="stat-card"><span>التذاكر السارية</span><strong id="active-count">0</strong><small>جاهزة للعبور</small></article>
+          <article class="stat-card"><span>إجمالي التذاكر</span><strong id="total-count">0</strong><small>منذ إنشاء الحساب</small></article>
+        </div>
+
+        <section class="content-section">
+          <div class="section-heading"><div><span class="eyebrow">السجل</span><h2>تذاكرك السابقة</h2></div></div>
+          <div class="ticket-list" id="ticket-list"></div>
+          <div class="empty-state" id="tickets-empty"><span>🎫</span><h3>لا توجد تذاكر بعد</h3><p>أنشئ أول تذكرة عبور وابدأ التتبع.</p></div>
+        </section>
+
+        <button class="primary-button floating-action" id="new-ticket-button"><span>＋</span> تذكرة عبور جديدة</button>
+      </section>
+
+      <section class="screen" id="documents-screen" data-screen="documents">
+        <div class="page-intro">
+          <span class="eyebrow">الخطوة 1 من 2</span>
+          <h1>رفع مستندات الرحلة</h1>
+          <p>صوّر كل مستند بوضوح. سنحلله ونطلب إعادته فقط إذا كانت بياناته ناقصة.</p>
+        </div>
+
+        <div class="upload-grid">
+          <article class="upload-card" data-document="identity">
+            <div class="upload-card-head"><span class="document-icon">🪪</span><div><h3>الهوية أو الإقامة</h3><p>للمطابقة فقط؛ بيانات حسابك لها الأولوية</p></div><span class="status-chip idle">مطلوب</span></div>
+            <div class="upload-preview"><span>ارفع صورة واضحة للمستند</span></div>
+            <div class="upload-actions">
+              <label class="secondary-button">📷 الكاميرا<input type="file" accept="image/*" capture="environment" hidden></label>
+              <label class="secondary-button">▧ الصور<input type="file" accept="image/*" hidden></label>
+            </div>
+            <p class="upload-error"></p>
+          </article>
+
+          <article class="upload-card" data-document="vehicle_license">
+            <div class="upload-card-head"><span class="document-icon">🚚</span><div><h3>رخصة سير الشاحنة</h3><p>رقم اللوحة ورخصة السير وتاريخ الانتهاء</p></div><span class="status-chip idle">مطلوب</span></div>
+            <div class="upload-preview"><span>ارفع صورة واضحة للمستند</span></div>
+            <div class="upload-actions">
+              <label class="secondary-button">📷 الكاميرا<input type="file" accept="image/*" capture="environment" hidden></label>
+              <label class="secondary-button">▧ الصور<input type="file" accept="image/*" hidden></label>
+            </div>
+            <p class="upload-error"></p>
+          </article>
+
+          <article class="upload-card" data-document="company_permit">
+            <div class="upload-card-head"><span class="document-icon">🏢</span><div><h3>ترخيص الشركة</h3><p>اسم الشركة والتصريح ونوع الحمولة</p></div><span class="status-chip idle">مطلوب</span></div>
+            <div class="upload-preview"><span>ارفع صورة واضحة للمستند</span></div>
+            <div class="upload-actions">
+              <label class="secondary-button">📷 الكاميرا<input type="file" accept="image/*" capture="environment" hidden></label>
+              <label class="secondary-button">▧ الصور<input type="file" accept="image/*" hidden></label>
+            </div>
+            <p class="upload-error"></p>
+          </article>
+        </div>
+
+        <section class="surface extracted-card hidden" id="extracted-card">
+          <div class="section-heading"><div><span class="eyebrow">مراجعة</span><h2>البيانات المستخرجة</h2></div><span class="ai-badge">✦ تحليل ذكي</span></div>
+          <p class="muted">تظهر هذه الحقول بعد اكتمال تحليل الصور الثلاث. راجع البيانات وعدّل أي قيمة قبل الحفظ؛ الحقول الخضراء مصدرها الحساب.</p>
+          <div class="data-grid" id="extracted-fields"></div>
+          <div class="notice error hidden" id="missing-fields-notice"></div>
+          <button class="primary-button full" id="documents-continue">حفظ واختيار نقطة العبور</button>
+        </section>
+      </section>
+
+      <section class="screen" id="route-screen" data-screen="route">
+        <div class="page-intro">
+          <span class="eyebrow">الخطوة 2 من 2</span>
+          <h1>اختيار نقطة العبور</h1>
+          <p>اختر وجهتك، وسيبدأ التتبع بعد إصدار التذكرة.</p>
+        </div>
+        <div class="date-banner"><span>📅</span><div><small>تاريخ الرحلة</small><strong id="trip-date"></strong></div></div>
+        <form id="route-form">
+          <div class="route-list" id="route-list"></div>
+          <label class="route-option custom-option">
+            <input type="radio" name="crossing-point" value="custom">
+            <span class="route-pin">＋</span>
+            <span><strong>إضافة نقطة عبور أخرى</strong><small>أدخل اسم النقطة وحدد موقعها الحالي</small></span>
+          </label>
+          <div class="surface custom-point-fields hidden" id="custom-point-fields">
+            <label for="custom-point-name">اسم نقطة العبور</label>
+            <input id="custom-point-name" placeholder="مثال: نقطة تفتيش طريق الساحل">
+            <button class="secondary-button full" id="use-current-location" type="button">⌖ استخدام موقعي الحالي</button>
+            <small id="custom-location-status" class="muted"></small>
+          </div>
+          <button class="primary-button full issue-button" type="submit">إصدار تذكرة العبور</button>
+        </form>
+      </section>
+
+      <section class="screen success-screen" id="success-screen" data-screen="success">
+        <div class="success-check">✓</div>
+        <span class="eyebrow">تم بنجاح</span>
+        <h1>تم إصدار تذكرة العبور</h1>
+        <p>بدأ التتبع الخاص برحلتك. أبقِ صلاحية الموقع مفعّلة أثناء القيادة.</p>
+        <article class="ticket-pass surface" id="ticket-pass"></article>
+        <div class="notice warning">استخدم الهاتف بأمان ولا تتعامل مع التطبيق أثناء القيادة.</div>
+        <button class="primary-button full" id="open-tracking">عرض الخريطة والتتبع</button>
+        <button class="text-button" id="success-home">العودة للرئيسية</button>
+      </section>
+
+      <section class="screen" id="tracking-screen" data-screen="tracking">
+        <div class="page-intro compact">
+          <span class="eyebrow">تتبع مباشر</span>
+          <h1 id="tracking-title">مسار الشاحنة</h1>
+          <p id="tracking-subtitle">يتم تحديث موقعك تلقائيًا.</p>
+        </div>
+        <div class="tracking-map" id="tracking-map"></div>
+        <div class="tracking-panel surface">
+          <span class="live-dot"></span><div><strong id="tracking-state">جاري طلب إذن الموقع</strong><small id="tracking-accuracy"></small></div>
+          <button class="secondary-button" id="stop-tracking">إيقاف</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="loading-overlay hidden" id="loading-overlay"><div class="spinner"></div><strong id="loading-message">جاري المعالجة...</strong></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="i18n.js"></script>
+  <script src="script.js" defer></script>
+</body>
+</html>

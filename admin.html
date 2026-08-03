@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#071b2a">
+  <title>مُسيّر | لوحة الإدارة</title>
+  <link rel="icon" href="logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="styles.css?v=5">
+  <link rel="stylesheet" href="admin.css?v=3">
+</head>
+<body class="admin-body">
+  <section class="admin-login" id="admin-login">
+    <div class="language-control admin-language"><span class="language-globe" aria-hidden="true">🌐</span><select class="language-select" data-language-select aria-label="اللغة"><option value="ar">العربية</option><option value="en">English</option><option value="ur">اردو</option></select></div>
+    <form class="surface admin-login-card" id="admin-login-form">
+      <div class="brand-logo brand-logo-hero"><img src="musir-logo.jpg" alt="شعار مُسيّر"></div>
+      <span class="eyebrow">بوابة العمليات</span>
+      <h1>لوحة إدارة مُسيّر</h1>
+      <p class="muted">متابعة التذاكر والشاحنات ونقاط العبور.</p>
+      <label for="admin-pin">رمز دخول الإدارة</label>
+      <input id="admin-pin" type="password" inputmode="numeric" autocomplete="current-password" required placeholder="••••">
+      <button class="primary-button full" type="submit">دخول لوحة الإدارة</button>
+    </form>
+  </section>
+
+  <div class="admin-app hidden" id="admin-app">
+    <header class="admin-header">
+      <a class="mini-brand" href="/admin.html"><span class="brand-logo brand-logo-small" aria-hidden="true"><img src="musir-logo.jpg" alt=""></span><span>مُسيّر <small>العمليات</small></span></a>
+      <div class="header-tools">
+        <span class="live-badge" id="live-status"><i></i><span>تحديث مباشر</span></span>
+        <div class="language-control compact"><span class="language-globe" aria-hidden="true">🌐</span><select class="language-select" data-language-select aria-label="اللغة"><option value="ar">العربية</option><option value="en">English</option><option value="ur">اردو</option></select></div>
+        <button class="icon-button" id="admin-logout" aria-label="تسجيل الخروج">↪</button>
+      </div>
+    </header>
+
+    <main class="admin-main">
+      <div class="admin-title"><div><span class="eyebrow">نظرة عامة</span><h1>مركز مراقبة الشاحنات</h1><p id="admin-date" class="muted"></p></div><button class="secondary-button" id="refresh-dashboard">↻ تحديث البيانات</button></div>
+
+      <section class="admin-stats">
+        <article class="admin-stat"><span class="stat-icon green">🎫</span><div><small>التذاكر السارية</small><strong id="stat-active">0</strong></div></article>
+        <article class="admin-stat"><span class="stat-icon blue">🚛</span><div><small>الشاحنات المتتبعة</small><strong id="stat-tracked">0</strong></div></article>
+        <article class="admin-stat"><span class="stat-icon navy">▤</span><div><small>إجمالي التذاكر</small><strong id="stat-total">0</strong></div></article>
+        <article class="admin-stat"><span class="stat-icon red">⚠</span><div><small>المخالفات المسجلة</small><strong id="stat-violations">0</strong></div></article>
+      </section>
+
+      <section class="admin-grid">
+        <article class="admin-panel map-panel">
+          <div class="panel-heading"><div><h2>خريطة التتبع المباشر</h2><p>آخر موقع مرسل من كل شاحنة</p></div><span class="map-count" id="map-count">0 شاحنة</span></div>
+          <div id="admin-map"></div>
+        </article>
+
+        <article class="admin-panel crossing-panel">
+          <div class="panel-heading"><div><h2>تسجيل عبور شاحنة</h2><p>أدخل اللوحة عند نقطة التفتيش</p></div></div>
+          <form id="crossing-form">
+            <label for="crossing-plate">رقم لوحة الشاحنة</label>
+            <input id="crossing-plate" required placeholder="ا ب ج 1234">
+            <label for="crossing-point">نقطة العبور</label>
+            <select id="crossing-point" required></select>
+            <button class="primary-button full" type="submit">التحقق وتسجيل العبور</button>
+          </form>
+          <div class="crossing-result hidden" id="crossing-result"></div>
+        </article>
+      </section>
+
+      <section class="admin-panel table-panel">
+        <div class="panel-heading"><div><h2>الشاحنات والتذاكر</h2><p>حالة كل تذكرة وآخر موقع معروف</p></div><input class="table-search" id="vehicle-search" placeholder="بحث باللوحة أو الشركة..."></div>
+        <div class="table-scroll"><table><thead><tr><th>رقم اللوحة</th><th>السائق</th><th>الشركة</th><th>نقطة العبور</th><th>رقم التذكرة</th><th>الحالة</th><th>آخر تحديث</th></tr></thead><tbody id="vehicles-body"></tbody></table></div>
+        <div class="empty-state hidden" id="vehicles-empty"><h3>لا توجد تذاكر حتى الآن</h3></div>
+      </section>
+
+      <section class="admin-panel table-panel violations-panel">
+        <div class="panel-heading"><div><h2>سجل المخالفات</h2><p>عبور دون تذكرة أو بتذكرة منتهية</p></div></div>
+        <div class="table-scroll"><table><thead><tr><th>رقم اللوحة</th><th>نقطة العبور</th><th>الحالة</th><th>سبب المخالفة</th><th>الوقت</th></tr></thead><tbody id="violations-body"></tbody></table></div>
+        <div class="empty-state" id="violations-empty"><h3>لا توجد مخالفات مسجلة</h3><p>ستظهر المخالفات هنا تلقائيًا.</p></div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status"></div>
+  <div class="loading-overlay hidden" id="loading-overlay"><div class="spinner"></div><strong id="loading-message">جاري المعالجة...</strong></div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="i18n.js"></script>
+  <script src="admin.js?v=3" defer></script>
+</body>
+</html>

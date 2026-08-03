@@ -1,0 +1,11 @@
+{
+  "name": "مُسيّر - تذاكر عبور الشاحنات",
+  "short_name": "مُسيّر",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#071b2a",
+  "theme_color": "#071b2a",
+  "icons": [{ "src": "/logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
