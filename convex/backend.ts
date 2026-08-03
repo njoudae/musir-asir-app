@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { env, mutation, query } from "./_generated/server";
 import { crossingPointValidator, driverValidator } from "./schema";
 
 const DEFAULT_POINTS = [
@@ -9,7 +9,7 @@ const DEFAULT_POINTS = [
 ];
 
 function authorize(serviceSecret: string) {
-  const configuredSecret = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.MUSIR_SERVICE_SECRET;
+  const configuredSecret = env.MUSIR_SERVICE_SECRET;
   if (!configuredSecret || serviceSecret.length < 32 || serviceSecret !== configuredSecret) {
     throw new Error("Unauthorized service request");
   }

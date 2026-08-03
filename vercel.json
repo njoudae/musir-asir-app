@@ -8,9 +8,14 @@
       "config": {
         "distDir": "dist"
       }
+    },
+    {
+      "src": "api/[...path].js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
+    { "src": "/api/(.*)", "dest": "/api/[...path].js" },
     { "src": "/admin", "dest": "/admin.html" },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/index.html" }
