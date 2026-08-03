@@ -2,12 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "node scripts/build-vercel.js",
   "outputDirectory": "dist",
-  "functions": {
-    "api/[...path].js": {
-      "maxDuration": 60,
-      "includeFiles": "lib/server.js"
-    }
-  },
   "rewrites": [
     { "source": "/admin", "destination": "/admin.html" }
   ],
