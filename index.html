@@ -60,7 +60,7 @@
               <span dir="ltr">+966</span>
               <input id="phone" name="phone" inputmode="tel" autocomplete="tel" maxlength="10" placeholder="5XXXXXXXX" required>
             </div>
-            <button class="primary-button full" type="submit">إرسال رمز التحقق SMS</button>
+            <button class="primary-button full" type="submit">إنشاء رمز التحقق</button>
           </form>
           <p class="legal">بالمتابعة أنت توافق على استخدام بياناتك لإصدار التذكرة والتحقق عند نقاط العبور.</p>
         </div>
@@ -70,14 +70,14 @@
         <div class="page-intro compact">
           <div class="step-icon">✉</div>
           <h1>أدخل رمز التحقق</h1>
-          <p>أرسلنا رمزًا من 6 أرقام إلى <strong id="otp-phone"></strong></p>
+          <p>أنشأنا رمزًا من 6 أرقام للرقم <strong id="otp-phone"></strong></p>
         </div>
         <form class="surface form-card" id="otp-form">
           <label for="otp-code">رمز التحقق</label>
           <input class="otp-input" id="otp-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="• • • • • •" required>
           <p class="demo-code hidden" id="demo-code"></p>
           <button class="primary-button full" type="submit">تحقق ودخول</button>
-          <button class="text-button" type="button" id="resend-otp">إعادة إرسال الرمز</button>
+          <button class="text-button" type="button" id="resend-otp">إنشاء رمز جديد</button>
         </form>
       </section>
 

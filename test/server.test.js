@@ -7,6 +7,7 @@ const path = require('node:path');
 const testDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'musir-test-'));
 process.env.DATA_DIR = testDataDir;
 process.env.SMS_PROVIDER = 'console';
+process.env.OTP_DELIVERY_MODE = 'onscreen';
 process.env.DEV_OTP_EXPOSE = 'true';
 process.env.AI_PROVIDER = 'mock';
 process.env.DATA_PROVIDER = 'json';
@@ -64,6 +65,7 @@ test('serves only the new public application files', async () => {
 test('completes OTP, profile, document, ticket, tracking, and admin crossing flow', async () => {
   const otp = await request('/api/auth/request-otp', { body: { phone: '0501234567' } });
   assert.equal(otp.status, 200);
+  assert.equal(otp.data.delivery.provider, 'onscreen');
   assert.match(otp.data.debugCode, /^\d{6}$/);
 
   const verification = await request('/api/auth/verify-otp', { body: { phone: '0501234567', code: otp.data.debugCode } });

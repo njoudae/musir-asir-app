@@ -174,13 +174,13 @@ async function requestOtp(event, forcedPhone) {
   event?.preventDefault();
   const phone = normalizePhoneInput(forcedPhone || $('#phone').value);
   if (!/^9665\d{8}$/.test(phone)) return toast('أدخل رقم جوال سعودي صحيح', 'error');
-  loading(true, 'جاري إرسال رمز التحقق...');
+  loading(true, 'جاري إنشاء رمز التحقق...');
   try {
     const result = await api('/api/auth/request-otp', { auth: false, body: { phone } });
     state.phone = result.phone;
     $('#otp-phone').textContent = `+${result.phone}`;
     if (result.debugCode) {
-      $('#demo-code').textContent = `${t('رمز وضع التطوير')}: ${result.debugCode}`;
+      $('#demo-code').textContent = `${t('رمز التحقق الخاص بك')}: ${result.debugCode}`;
       $('#demo-code').classList.remove('hidden');
     } else {
       $('#demo-code').classList.add('hidden');
