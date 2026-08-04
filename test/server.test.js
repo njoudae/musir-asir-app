@@ -47,6 +47,7 @@ test('normalizes Saudi phone numbers and plates', () => {
 test('computes ticket status from expiry', () => {
   assert.equal(ticketStatus({ status: 'active', expiresAt: new Date(Date.now() + 10000).toISOString() }), 'active');
   assert.equal(ticketStatus({ status: 'active', expiresAt: new Date(Date.now() - 10000).toISOString() }), 'expired');
+  assert.equal(ticketStatus({ status: 'active', issuedAt: new Date(Date.now() - 61 * 60 * 1000).toISOString(), expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() }), 'expired');
 });
 
 test('serves only the new public application files', async () => {
@@ -90,6 +91,8 @@ test('completes OTP, profile, document, ticket, tracking, and admin crossing flo
   } });
   assert.equal(ticket.status, 201);
   assert.equal(ticket.data.ticket.status, 'active');
+  const ticketLifetime = new Date(ticket.data.ticket.expiresAt).getTime() - new Date(ticket.data.ticket.issuedAt).getTime();
+  assert.equal(ticketLifetime, 60 * 60 * 1000);
 
   const location = await request(`/api/tickets/${ticket.data.ticket.id}/locations`, { token, body: { lat: 18.24, lng: 42.51, accuracy: 10 } });
   assert.equal(location.status, 201);

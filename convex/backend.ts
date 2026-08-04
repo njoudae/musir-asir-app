@@ -35,9 +35,20 @@ function publicUser(user: {
   };
 }
 
-function statusFor(ticket: { status: "active" | "cancelled"; expiresAt: string }, nowMs: number) {
+const TICKET_VALIDITY_MS = 60 * 60 * 1000;
+
+function effectiveExpiry(ticket: { issuedAt: string; expiresAt: string }) {
+  const issuedExpiry = Date.parse(ticket.issuedAt) + TICKET_VALIDITY_MS;
+  const storedExpiry = Date.parse(ticket.expiresAt);
+  const expiry = Number.isFinite(issuedExpiry) && Number.isFinite(storedExpiry)
+    ? Math.min(issuedExpiry, storedExpiry)
+    : Number.isFinite(issuedExpiry) ? issuedExpiry : storedExpiry;
+  return new Date(expiry).toISOString();
+}
+
+function statusFor(ticket: { status: "active" | "cancelled"; issuedAt: string; expiresAt: string }, nowMs: number) {
   if (ticket.status === "cancelled") return "cancelled" as const;
-  return Date.parse(ticket.expiresAt) > nowMs ? "active" as const : "expired" as const;
+  return Date.parse(effectiveExpiry(ticket)) > nowMs ? "active" as const : "expired" as const;
 }
 
 export const saveOtpChallenge = mutation({
@@ -128,7 +139,7 @@ function publicTicket(ticket: {
     cargoType: ticket.cargoType,
     crossingPoint: ticket.crossingPoint,
     issuedAt: ticket.issuedAt,
-    expiresAt: ticket.expiresAt,
+    expiresAt: effectiveExpiry(ticket),
     status: statusFor(ticket, nowMs),
     trackingActive: ticket.trackingActive,
   };
