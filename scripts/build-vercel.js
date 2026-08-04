@@ -27,12 +27,18 @@ function inlinePage(file, stylesheetNames, scriptNames) {
   for (const stylesheet of stylesheetNames) {
     const css = fs.readFileSync(path.join(root, stylesheet), 'utf8');
     const escaped = stylesheet.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    html = html.replace(new RegExp(`<link\\s+rel="stylesheet"\\s+href="${escaped}(?:\\?[^\"]*)?">`), `<style data-source="${stylesheet}">\n${css}\n</style>`);
+    html = html.replace(
+      new RegExp(`<link\\s+rel="stylesheet"\\s+href="${escaped}(?:\\?[^\"]*)?">`),
+      () => `<style data-source="${stylesheet}">\n${css}\n</style>`
+    );
   }
   for (const script of scriptNames) {
     const source = safeInlineScript(fs.readFileSync(path.join(root, script), 'utf8'));
     const escaped = script.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    html = html.replace(new RegExp(`<script\\s+src="${escaped}(?:\\?[^\"]*)?"(?:\\s+defer)?><\\/script>`), `<script data-source="${script}">\n${source}\n</script>`);
+    html = html.replace(
+      new RegExp(`<script\\s+src="${escaped}(?:\\?[^\"]*)?"(?:\\s+defer)?><\\/script>`),
+      () => `<script data-source="${script}">\n${source}\n</script>`
+    );
   }
   fs.writeFileSync(path.join(output, file), html, 'utf8');
 }
