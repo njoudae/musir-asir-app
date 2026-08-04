@@ -94,6 +94,14 @@ test('completes OTP, profile, document, ticket, tracking, and admin crossing flo
   const location = await request(`/api/tickets/${ticket.data.ticket.id}/locations`, { token, body: { lat: 18.24, lng: 42.51, accuracy: 10 } });
   assert.equal(location.status, 201);
 
+  const stoppedTracking = await request(`/api/tickets/${ticket.data.ticket.id}/tracking`, { token, body: { active: false } });
+  assert.equal(stoppedTracking.status, 200);
+  const pausedDashboard = await request('/api/admin/dashboard', { token: (await request('/api/admin/login', { body: { pin: '2468' } })).data.token });
+  assert.equal(pausedDashboard.data.stats.trackedTrucks, 0);
+
+  const resumedLocation = await request(`/api/tickets/${ticket.data.ticket.id}/locations`, { token, body: { lat: 18.241, lng: 42.512, accuracy: 8 } });
+  assert.equal(resumedLocation.status, 201);
+
   const adminLogin = await request('/api/admin/login', { body: { pin: '2468' } });
   const adminToken = adminLogin.data.token;
   const validCrossing = await request('/api/admin/crossing-events', { token: adminToken, body: { plate: 'ا ب ج 1234', crossingPointId: 'shaaar' } });

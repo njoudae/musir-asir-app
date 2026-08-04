@@ -8,7 +8,7 @@
   <link rel="icon" href="logo.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="styles.css?v=5">
-  <link rel="stylesheet" href="admin.css?v=3">
+  <link rel="stylesheet" href="admin.css?v=4">
 </head>
 <body class="admin-body">
   <section class="admin-login" id="admin-login">
@@ -44,6 +44,12 @@
         <article class="admin-stat"><span class="stat-icon red">⚠</span><div><small>المخالفات المسجلة</small><strong id="stat-violations">0</strong></div></article>
       </section>
 
+      <section class="admin-panel live-journeys-panel">
+        <div class="panel-heading"><div><h2>الرحلات المباشرة الآن</h2><p>بيانات السائق والشاحنة والتذكرة وآخر موقع لحظة بلحظة</p></div><span class="map-count" id="live-journeys-count">0 رحلة</span></div>
+        <div class="live-journeys-grid" id="live-journeys"></div>
+        <div class="empty-state" id="live-journeys-empty"><span>⌖</span><h3>لا يوجد تتبع مباشر الآن</h3><p>ستظهر الرحلة هنا فور ضغط السائق على «ابدأ التتبع» والسماح بالموقع.</p></div>
+      </section>
+
       <section class="admin-grid">
         <article class="admin-panel map-panel">
           <div class="panel-heading"><div><h2>خريطة التتبع المباشر</h2><p>آخر موقع مرسل من كل شاحنة</p></div><span class="map-count" id="map-count">0 شاحنة</span></div>
@@ -65,7 +71,7 @@
 
       <section class="admin-panel table-panel">
         <div class="panel-heading"><div><h2>الشاحنات والتذاكر</h2><p>حالة كل تذكرة وآخر موقع معروف</p></div><input class="table-search" id="vehicle-search" placeholder="بحث باللوحة أو الشركة..."></div>
-        <div class="table-scroll"><table><thead><tr><th>رقم اللوحة</th><th>السائق</th><th>الشركة</th><th>نقطة العبور</th><th>رقم التذكرة</th><th>الحالة</th><th>آخر تحديث</th></tr></thead><tbody id="vehicles-body"></tbody></table></div>
+        <div class="table-scroll"><table><thead><tr><th>رقم اللوحة</th><th>السائق</th><th>الشركة</th><th>نقطة العبور</th><th>رقم التذكرة</th><th>الحالة</th><th>التتبع</th><th>آخر تحديث</th></tr></thead><tbody id="vehicles-body"></tbody></table></div>
         <div class="empty-state hidden" id="vehicles-empty"><h3>لا توجد تذاكر حتى الآن</h3></div>
       </section>
 
@@ -81,6 +87,6 @@
   <div class="loading-overlay hidden" id="loading-overlay"><div class="spinner"></div><strong id="loading-message">جاري المعالجة...</strong></div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="i18n.js"></script>
-  <script src="admin.js?v=3" defer></script>
+  <script src="admin.js?v=4" defer></script>
 </body>
 </html>

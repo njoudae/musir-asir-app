@@ -558,8 +558,14 @@ function openTracking(ticket) {
   state.currentTicket = ticket;
   $('#tracking-title').textContent = t(ticket.crossingPoint.name);
   $('#tracking-subtitle').textContent = `${ticket.ticketNumber} • ${ticket.truckPlateNumber}`;
+  $('#tracking-state').textContent = t('جاري طلب إذن الموقع');
+  $('#tracking-accuracy').textContent = '';
+  state.lastLocationSentAt = 0;
   showScreen('tracking');
-  setTimeout(() => initializeMap(ticket), 80);
+  setTimeout(() => {
+    initializeMap(ticket);
+    startTracking(ticket);
+  }, 80);
 }
 
 function initializeMap(ticket) {
@@ -576,7 +582,6 @@ function initializeMap(ticket) {
   state.map = L.map('tracking-map').setView(destination, 10);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(state.map);
   L.marker(destination).addTo(state.map).bindPopup(escapeHtml(ticket.crossingPoint.name));
-  startTracking(ticket);
 }
 
 function startTracking(ticket) {
@@ -584,33 +589,46 @@ function startTracking(ticket) {
     $('#tracking-state').textContent = t('الجهاز لا يدعم تحديد الموقع');
     return;
   }
-  stopTracking(false);
+  stopTracking(false, false);
   state.watchId = navigator.geolocation.watchPosition((position) => {
     const point = [position.coords.latitude, position.coords.longitude];
     $('#tracking-state').textContent = t('التتبع مباشر الآن');
     $('#tracking-accuracy').textContent = `${t('دقة الموقع')}: ${position.coords.accuracy.toFixed(0)}m`;
-    if (!state.marker) state.marker = L.marker(point).addTo(state.map).bindPopup(t('موقع الشاحنة الحالي'));
-    else state.marker.setLatLng(point);
+    if (state.map && window.L) {
+      if (!state.marker) state.marker = L.marker(point).addTo(state.map).bindPopup(t('موقع الشاحنة الحالي'));
+      else state.marker.setLatLng(point);
+    }
     const destination = [Number(ticket.crossingPoint.lat), Number(ticket.crossingPoint.lng)];
-    if (destination.every(Number.isFinite)) {
+    if (state.map && destination.every(Number.isFinite)) {
       if (state.routeLine) state.routeLine.remove();
       state.routeLine = L.polyline([point, destination], { color: '#13b98e', weight: 5, dashArray: '8 10' }).addTo(state.map);
       state.map.fitBounds(state.routeLine.getBounds(), { padding: [40, 40], maxZoom: 14 });
-    } else state.map.setView(point, 14);
+    } else if (state.map) state.map.setView(point, 14);
     if (Date.now() - state.lastLocationSentAt > 15000) {
       state.lastLocationSentAt = Date.now();
-      api(`/api/tickets/${encodeURIComponent(ticket.id)}/locations`, { body: { lat: point[0], lng: point[1], accuracy: position.coords.accuracy } }).catch(console.warn);
+      api(`/api/tickets/${encodeURIComponent(ticket.id)}/locations`, { body: { lat: point[0], lng: point[1], accuracy: position.coords.accuracy } })
+        .then(() => { ticket.trackingActive = true; })
+        .catch(() => { $('#tracking-state').textContent = t('تعذر إرسال الموقع. تحقق من الاتصال'); });
     }
   }, (error) => {
     $('#tracking-state').textContent = t(locationError(error));
+    setTrackingStatus(ticket, false);
   }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
 }
 
-function stopTracking(updateText = true) {
+function setTrackingStatus(ticket, active) {
+  if (!ticket?.id) return Promise.resolve();
+  ticket.trackingActive = active;
+  return api(`/api/tickets/${encodeURIComponent(ticket.id)}/tracking`, { body: { active } }).catch(console.warn);
+}
+
+function stopTracking(updateText = true, notifyBackend = true) {
+  const wasTracking = state.watchId !== null || Boolean(state.currentTicket?.trackingActive);
   if (state.watchId !== null) navigator.geolocation.clearWatch(state.watchId);
   state.watchId = null;
   state.marker = null;
   state.routeLine = null;
+  if (notifyBackend && wasTracking) setTrackingStatus(state.currentTicket, false);
   if (updateText && $('#tracking-state')) $('#tracking-state').textContent = t('تم إيقاف التتبع');
 }
 

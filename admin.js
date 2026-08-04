@@ -15,10 +15,12 @@ document.addEventListener('DOMContentLoaded', initializeAdmin);
 function initializeAdmin() {
   $('#admin-login-form').addEventListener('submit', login);
   $('#admin-logout').addEventListener('click', logout);
-  $('#refresh-dashboard').addEventListener('click', loadDashboard);
+  $('#refresh-dashboard').addEventListener('click', () => loadDashboard().catch((error) => toast(error.message, 'error')));
   $('#crossing-form').addEventListener('submit', recordCrossing);
   $('#vehicle-search').addEventListener('input', renderVehicles);
   window.addEventListener('musir:language', () => { setAdminDate(); if (adminState.data) renderDashboard(); });
+  window.addEventListener('focus', () => { if (adminState.token) loadDashboard().catch(() => {}); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && adminState.token) loadDashboard().catch(() => {}); });
   setAdminDate();
   if (adminState.token) openDashboard();
 }
@@ -52,7 +54,7 @@ async function openDashboard() {
   try { await loadDashboard(); }
   catch (error) { logout(); toast(error.message, 'error'); }
   clearInterval(adminState.timer);
-  adminState.timer = setInterval(loadDashboard, 5000);
+  adminState.timer = setInterval(() => loadDashboard().catch(() => {}), 3000);
 }
 
 async function loadDashboard() {
@@ -80,9 +82,34 @@ function renderDashboard() {
   $('#stat-violations').textContent = stats.violations;
   $('#map-count').textContent = `${stats.trackedTrucks} ${t('شاحنة')}`;
   $('#crossing-point').innerHTML = points.map((point) => `<option value="${escapeHtml(point.id)}">${escapeHtml(t(point.name))}</option>`).join('');
+  renderLiveJourneys();
   renderVehicles();
   renderViolations();
   renderMap();
+}
+
+function renderLiveJourneys() {
+  const journeys = adminState.data.vehicles.filter((item) => item.status === 'active' && item.trackingActive);
+  $('#live-journeys-count').textContent = `${journeys.length} ${t('رحلة')}`;
+  $('#live-journeys').innerHTML = journeys.map((item) => {
+    const location = item.latestLocation;
+    const freshness = location ? locationFreshness(location.recordedAt) : null;
+    const coordinates = location ? `${Number(location.lat).toFixed(5)}, ${Number(location.lng).toFixed(5)}` : t('بانتظار أول موقع');
+    const mapsUrl = location ? `https://www.google.com/maps?q=${encodeURIComponent(`${location.lat},${location.lng}`)}` : '';
+    return `<article class="live-journey-card" data-ticket-id="${escapeHtml(item.id)}">
+      <div class="live-journey-head"><div><h3>${escapeHtml(item.driver.fullName)}</h3><p>${escapeHtml(formatPhone(item.driver.phone))} • ${escapeHtml(maskNationalId(item.driver.nationalId))}</p></div><span class="tracking-badge">${t('تتبع مباشر')}</span></div>
+      <div class="live-journey-details">
+        <div class="live-detail"><small>${t('لوحة الشاحنة')}</small><strong class="plate">${escapeHtml(item.truckPlateNumber)}</strong></div>
+        <div class="live-detail"><small>${t('رقم التذكرة')}</small><strong dir="ltr">${escapeHtml(item.ticketNumber)}</strong></div>
+        <div class="live-detail"><small>${t('الشركة')}</small><strong>${escapeHtml(item.companyName)}</strong></div>
+        <div class="live-detail"><small>${t('نوع الحمولة')}</small><strong>${escapeHtml(item.cargoType)}</strong></div>
+        <div class="live-detail"><small>${t('نقطة العبور')}</small><strong>${escapeHtml(t(item.crossingPoint.name))}</strong></div>
+        <div class="live-detail"><small>${t('صلاحية التذكرة')}</small><strong>${formatDate(item.expiresAt)}</strong></div>
+        <div class="live-location"><div><small>${t('الموقع الحالي')}</small><strong dir="ltr">${escapeHtml(coordinates)}</strong>${location ? `<small class="location-freshness ${freshness.className}">${escapeHtml(t(freshness.label))} • ${formatDate(location.recordedAt)} • ±${Math.round(location.accuracy || 0)}m</small>` : ''}</div>${mapsUrl ? `<a href="${mapsUrl}" target="_blank" rel="noopener">${t('فتح الموقع')} ↗</a>` : ''}</div>
+      </div>
+    </article>`;
+  }).join('');
+  $('#live-journeys-empty').classList.toggle('hidden', journeys.length > 0);
 }
 
 function renderVehicles() {
@@ -91,7 +118,7 @@ function renderVehicles() {
   const vehicles = adminState.data.vehicles.filter((item) => !term || `${item.truckPlateNumber} ${item.companyName} ${item.driver.fullName}`.toLowerCase().includes(term));
   $('#vehicles-body').innerHTML = vehicles.map((item) => `<tr>
     <td><span class="plate">${escapeHtml(item.truckPlateNumber)}</span></td><td>${escapeHtml(item.driver.fullName)}</td><td>${escapeHtml(item.companyName)}</td>
-    <td>${escapeHtml(t(item.crossingPoint.name))}</td><td dir="ltr">${escapeHtml(item.ticketNumber)}</td><td><span class="status-pill ${item.status}">${statusText(item.status)}</span></td>
+    <td>${escapeHtml(t(item.crossingPoint.name))}</td><td dir="ltr">${escapeHtml(item.ticketNumber)}</td><td><span class="status-pill ${item.status}">${statusText(item.status)}</span></td><td>${item.trackingActive ? `<span class="tracking-badge">${t('مباشر')}</span>` : `<span class="muted">${t('متوقف')}</span>`}</td>
     <td>${item.latestLocation ? `${formatDate(item.latestLocation.recordedAt)}<small class="location-freshness ${locationFreshness(item.latestLocation.recordedAt).className}">${escapeHtml(t(locationFreshness(item.latestLocation.recordedAt).label))}</small>` : '—'}</td></tr>`).join('');
   $('#vehicles-empty').classList.toggle('hidden', vehicles.length > 0);
 }
@@ -123,7 +150,7 @@ function renderMap() {
     const latLng = [location.lat, location.lng];
     bounds.push(latLng);
     const freshness = locationFreshness(location.recordedAt);
-    L.marker(latLng).addTo(adminState.markers).bindPopup(`<strong>${escapeHtml(vehicle.truckPlateNumber)}</strong><br>${escapeHtml(vehicle.companyName)}<br>${statusText(vehicle.status)}<br><small>${escapeHtml(t(freshness.label))} • ${formatDate(location.recordedAt)}</small>`);
+    L.marker(latLng).addTo(adminState.markers).bindPopup(`<strong>${escapeHtml(vehicle.truckPlateNumber)}</strong><br>${escapeHtml(vehicle.driver.fullName)}<br>${escapeHtml(vehicle.ticketNumber)}<br>${escapeHtml(vehicle.companyName)}<br>${statusText(vehicle.status)}<br><small>${escapeHtml(t(freshness.label))} • ${formatDate(location.recordedAt)}</small>`);
   }
   if (bounds.length) adminState.map.fitBounds(bounds, { padding: [45, 45], maxZoom: 13 });
   setTimeout(() => adminState.map.invalidateSize(), 50);
@@ -171,6 +198,16 @@ function locationFreshness(recordedAt) {
   if (age <= 30000) return { className: 'live', label: 'موقع حي الآن' };
   if (age <= 120000) return { className: 'recent', label: 'موقع حديث' };
   return { className: 'stale', label: 'موقع قديم' };
+}
+
+function formatPhone(value) {
+  const phone = String(value || '');
+  return phone.startsWith('966') ? `+${phone}` : phone;
+}
+
+function maskNationalId(value) {
+  const id = String(value || '');
+  return id ? `${'•'.repeat(Math.max(0, id.length - 4))}${id.slice(-4)}` : '—';
 }
 
 function statusText(status) { return t({ active: 'سارية', expired: 'منتهية', none: 'لا توجد تذكرة', cancelled: 'ملغاة' }[status] || status); }

@@ -250,7 +250,7 @@ export const createTicket = mutation({
       issuedAt: args.issuedAt,
       expiresAt: args.expiresAt,
       status: "active",
-      trackingActive: true,
+      trackingActive: false,
     });
     const ticket = await ctx.db.get("tickets", id);
     if (!ticket) throw new Error("Unable to create ticket");
@@ -265,11 +265,24 @@ export const recordLocation = mutation({
     authorize(args.serviceSecret);
     const ticket = await ctx.db.query("tickets").withIndex("by_external_id", (q) => q.eq("externalId", args.ticketExternalId)).unique();
     if (!ticket || ticket.userExternalId !== args.externalUserId) throw new Error("Ticket not found");
+    if (!ticket.trackingActive) await ctx.db.patch("tickets", ticket._id, { trackingActive: true });
     const location = { ticketId: ticket._id, ticketExternalId: ticket.externalId, plate: ticket.truckPlateNumber, lat: args.lat, lng: args.lng, accuracy: args.accuracy, recordedAt: args.recordedAt };
     await ctx.db.insert("locations", location);
     const latest = await ctx.db.query("latestLocations").withIndex("by_ticket_id", (q) => q.eq("ticketId", ticket._id)).unique();
     if (latest) await ctx.db.replace("latestLocations", latest._id, location);
     else await ctx.db.insert("latestLocations", location);
+    return null;
+  },
+});
+
+export const setTrackingStatus = mutation({
+  args: { serviceSecret: v.string(), externalUserId: v.string(), ticketExternalId: v.string(), active: v.boolean() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    authorize(args.serviceSecret);
+    const ticket = await ctx.db.query("tickets").withIndex("by_external_id", (q) => q.eq("externalId", args.ticketExternalId)).unique();
+    if (!ticket || ticket.userExternalId !== args.externalUserId) throw new Error("Ticket not found");
+    if (ticket.trackingActive !== args.active) await ctx.db.patch("tickets", ticket._id, { trackingActive: args.active });
     return null;
   },
 });
@@ -290,7 +303,7 @@ export const adminDashboard = query({
       stats: {
         totalTickets: tickets.length,
         activeTickets: vehicles.filter((ticket) => ticket.status === "active").length,
-        trackedTrucks: vehicles.filter((ticket) => ticket.status === "active" && ticket.latestLocation).length,
+        trackedTrucks: vehicles.filter((ticket) => ticket.status === "active" && ticket.trackingActive && ticket.latestLocation).length,
         violations: violations.length,
       },
       vehicles,
