@@ -72,7 +72,9 @@ function bindEvents() {
   $('#nafath-button').addEventListener('click', startNafath);
   $('#profile-form').addEventListener('submit', saveProfile);
   $('#new-ticket-button').addEventListener('click', startNewTicket);
+  $('#extract-documents').addEventListener('click', analyzeDocuments);
   $('#documents-continue').addEventListener('click', continueFromDocuments);
+  $('#documents-reextract').addEventListener('click', analyzeDocuments);
   $('#route-form').addEventListener('submit', issueTicket);
   $('#use-current-location').addEventListener('click', getCustomLocation);
   $('#open-tracking').addEventListener('click', () => openTracking(state.currentTicket));
@@ -304,13 +306,14 @@ function startNewTicket() {
   state.ticketDraft = {};
   $$('.upload-card').forEach(resetUploadCard);
   $('#extracted-card').classList.add('hidden');
+  $('#extraction-action').classList.add('hidden');
   $('#extracted-fields').innerHTML = '';
   $('#missing-fields-notice').classList.add('hidden');
   showScreen('documents');
 }
 
 function resetUploadCard(card) {
-  card.classList.remove('complete', 'error');
+  card.classList.remove('complete', 'error', 'ready');
   $('.status-chip', card).className = 'status-chip idle';
   $('.status-chip', card).textContent = t('مطلوب');
   $('.upload-preview', card).innerHTML = `<span>${t('ارفع صورة واضحة للمستند')}</span>`;
@@ -325,37 +328,91 @@ async function handleDocumentFile(card, file) {
   const type = card.dataset.document;
   const previewUrl = URL.createObjectURL(file);
   $('.upload-preview', card).innerHTML = `<img src="${previewUrl}" alt="${t('مستند')}">`;
+  $('.upload-preview img', card).addEventListener('load', () => URL.revokeObjectURL(previewUrl), { once: true });
   const chip = $('.status-chip', card);
   chip.className = 'status-chip loading';
-  chip.textContent = t('جاري التحليل');
-  card.classList.remove('complete', 'error');
+  chip.textContent = t('جاري تجهيز الصورة');
+  card.classList.remove('complete', 'error', 'ready');
   $('.upload-error', card).textContent = '';
+  delete state.documentResults[type];
+  $('#extracted-card').classList.add('hidden');
+  $('#extracted-fields').innerHTML = '';
   try {
     const dataUrl = await compressImage(file);
-    const result = await api('/api/documents/analyze', { body: { documentType: type, dataUrl } });
-    const required = REQUIRED_BY_DOCUMENT[type];
-    const missing = required.filter((key) => !String(result.fields[key] || '').trim());
-    if (missing.length) {
-      delete state.documentResults[type];
-      markUploadError(card, `${t('تعذر قراءة')}: ${missing.map((key) => t(FIELD_CONFIG[key].label)).join('، ')}. ${t('أعد رفع صورة أوضح.')}`);
-      return;
-    }
-    state.documentResults[type] = result.fields;
-    state.files[type] = { name: file.name, analyzedAt: new Date().toISOString() };
-    card.classList.add('complete');
-    chip.className = 'status-chip complete';
-    chip.textContent = t('مكتمل');
-    const allDocumentsComplete = Object.keys(REQUIRED_BY_DOCUMENT).every((documentType) => state.documentResults[documentType]);
-    if (allDocumentsComplete) renderExtractedFields();
-    else {
-      $('#extracted-card').classList.add('hidden');
-      $('#extracted-fields').innerHTML = '';
-    }
+    state.files[type] = { name: file.name, dataUrl, selectedAt: new Date().toISOString() };
+    card.classList.add('ready');
+    chip.className = 'status-chip ready';
+    chip.textContent = t('تم الرفع');
   } catch (error) {
-    delete state.documentResults[type];
+    delete state.files[type];
     markUploadError(card, error.message);
+  }
+  updateExtractionAction();
+}
+
+function updateExtractionAction() {
+  const hasAllFiles = Object.keys(REQUIRED_BY_DOCUMENT).every((type) => state.files[type]?.dataUrl);
+  const hasAllResults = Object.keys(REQUIRED_BY_DOCUMENT).every((type) => state.documentResults[type]);
+  $('#extraction-action').classList.toggle('hidden', !hasAllFiles || hasAllResults);
+}
+
+function setDocumentInputsDisabled(disabled) {
+  $$('.upload-card input[type="file"]').forEach((input) => { input.disabled = disabled; });
+  $('#extract-documents').disabled = disabled;
+  $('#documents-reextract').disabled = disabled;
+}
+
+async function analyzeDocuments() {
+  const documentTypes = Object.keys(REQUIRED_BY_DOCUMENT);
+  const missingFiles = documentTypes.filter((type) => !state.files[type]?.dataUrl);
+  if (missingFiles.length) return toast('ارفع الصور الثلاث أولًا', 'error');
+
+  state.documentResults = {};
+  state.ticketDraft = {};
+  $('#extracted-card').classList.add('hidden');
+  $('#missing-fields-notice').classList.add('hidden');
+  setDocumentInputsDisabled(true);
+  loading(true, 'جاري استخراج النص من المستندات...');
+
+  try {
+    const requests = Promise.all(documentTypes.map(async (type) => ({
+      type,
+      result: await api('/api/documents/analyze', { body: { documentType: type, dataUrl: state.files[type].dataUrl } })
+    })));
+    const [analyses] = await Promise.all([requests, new Promise((resolve) => setTimeout(resolve, 850))]);
+
+    const invalidAnalysis = analyses.find(({ type, result }) => REQUIRED_BY_DOCUMENT[type]
+      .some((key) => !String(result.fields[key] || '').trim()));
+    if (invalidAnalysis) {
+      const { type, result } = invalidAnalysis;
+      const required = REQUIRED_BY_DOCUMENT[type];
+      const missing = required.filter((key) => !String(result.fields[key] || '').trim());
+      const card = $(`.upload-card[data-document="${type}"]`);
+      markUploadError(card, `${t('تعذر قراءة')}: ${missing.map((key) => t(FIELD_CONFIG[key].label)).join('، ')}. ${t('أعد رفع صورة أوضح.')}`);
+      throw new Error(t('بعض البيانات المطلوبة ناقصة'));
+    }
+
+    for (const { type, result } of analyses) {
+      state.documentResults[type] = result.fields;
+      state.files[type].analyzedAt = new Date().toISOString();
+      const card = $(`.upload-card[data-document="${type}"]`);
+      card.classList.remove('ready', 'error');
+      card.classList.add('complete');
+      const chip = $('.status-chip', card);
+      chip.className = 'status-chip complete';
+      chip.textContent = t('مكتمل');
+    }
+
+    renderExtractedFields();
+    $('#extracted-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    toast('تم استخراج البيانات، راجعها ثم أكدها', 'success');
+  } catch (error) {
+    state.documentResults = {};
+    toast(error.message || t('فشل تحليل المستند'), 'error');
   } finally {
-    URL.revokeObjectURL(previewUrl);
+    loading(false);
+    setDocumentInputsDisabled(false);
+    updateExtractionAction();
   }
 }
 

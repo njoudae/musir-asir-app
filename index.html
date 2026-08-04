@@ -162,12 +162,24 @@
           </article>
         </div>
 
+        <section class="surface extraction-action hidden" id="extraction-action">
+          <div>
+            <span class="eyebrow">جاهز للاستخراج</span>
+            <h2>استخراج بيانات المستندات</h2>
+            <p class="muted">تم رفع الصور الثلاث. اضغط الزر لقراءة النصوص وتجهيز البيانات للمراجعة.</p>
+          </div>
+          <button class="primary-button" id="extract-documents">استخراج البيانات</button>
+        </section>
+
         <section class="surface extracted-card hidden" id="extracted-card">
           <div class="section-heading"><div><span class="eyebrow">مراجعة</span><h2>البيانات المستخرجة</h2></div><span class="ai-badge">✦ تحليل ذكي</span></div>
-          <p class="muted">تظهر هذه الحقول بعد اكتمال تحليل الصور الثلاث. راجع البيانات وعدّل أي قيمة قبل الحفظ؛ الحقول الخضراء مصدرها الحساب.</p>
+          <p class="muted">راجع البيانات المستخرجة وعدّل أي قيمة قبل التأكيد؛ الحقول الخضراء مصدرها الحساب.</p>
           <div class="data-grid" id="extracted-fields"></div>
           <div class="notice error hidden" id="missing-fields-notice"></div>
-          <button class="primary-button full" id="documents-continue">حفظ واختيار نقطة العبور</button>
+          <div class="review-actions">
+            <button class="primary-button" id="documents-continue">تأكيد البيانات</button>
+            <button class="secondary-button" id="documents-reextract">إعادة استخراج</button>
+          </div>
         </section>
       </section>
 

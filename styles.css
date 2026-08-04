@@ -190,6 +190,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--mint-dark); box-
 .status-chip { padding: 5px 8px; border-radius: 99px; font-size: .7rem; font-weight: 800; }
 .status-chip.idle { color: #667b85; background: #edf2f3; }
 .status-chip.loading { color: #155d72; background: #def6fc; }
+.status-chip.ready { color: #155d72; background: #def6fc; }
 .status-chip.complete { color: #087054; background: #dff9f0; }
 .status-chip.error { color: #9b3946; background: #ffeaed; }
 .upload-preview { height: 130px; display: grid; place-items: center; margin: 15px 0 12px; border: 1px dashed #bfd0d5; border-radius: 14px; color: #8a9ca4; background: #f8fbfb; overflow: hidden; }
@@ -197,6 +198,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--mint-dark); box-
 .upload-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .upload-actions label { margin: 0; font-size: .84rem; cursor: pointer; }
 .upload-error { min-height: 18px; margin-top: 8px !important; color: var(--danger) !important; }
+.extraction-action { max-width: 900px; display: flex; align-items: center; justify-content: space-between; gap: 22px; margin: 22px auto 0; padding: 20px; border-color: #9ae4d2; background: linear-gradient(135deg, #fff 0%, #effcf8 100%); }
+.extraction-action h2 { margin: 5px 0 4px; font-size: 1.15rem; }
+.extraction-action p { margin: 0; }
+.extraction-action .primary-button { flex: 0 0 auto; min-width: 190px; }
 .extracted-card { max-width: 900px; margin: 22px auto 0; padding: 20px; }
 .ai-badge { padding: 6px 9px; border-radius: 99px; color: #0b735c; background: #ddf8f1; font-size: .76rem; font-weight: 800; }
 .data-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; margin: 18px 0; }
@@ -204,6 +209,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--mint-dark); box-
 .field-wrap label { display: flex; justify-content: space-between; }
 .field-source { color: #17886c; font-size: .7rem; }
 .field-wrap.account input { border-color: #8bdac7; background: #f1fbf8; }
+.review-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
 .date-banner { max-width: 760px; display: flex; gap: 12px; align-items: center; margin: 0 auto 18px; padding: 14px 17px; border-radius: 16px; color: #fff; background: var(--navy-2); }
 .date-banner > span { font-size: 1.4rem; }
@@ -275,6 +281,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--mint-dark); box-
   .auth-card { padding: 21px; }
   .dashboard-hero { margin-inline: -15px; }
   .data-grid { grid-template-columns: 1fr; }
+  .extraction-action { align-items: stretch; flex-direction: column; }
+  .extraction-action .primary-button { width: 100%; }
+  .review-actions { grid-template-columns: 1fr; }
   .ticket-pass-grid { grid-template-columns: 1fr; }
   .upload-card-head { grid-template-columns: 42px 1fr auto; gap: 9px; }
   .document-icon { width: 42px; height: 42px; }
