@@ -3,10 +3,16 @@ import { env, mutation, query } from "./_generated/server";
 import { crossingPointValidator, driverValidator } from "./schema";
 
 const DEFAULT_POINTS = [
-  { id: "shaaar", name: "عقبة شعار", route: "أبها / خميس مشيط إلى محايل", lat: 18.3326, lng: 42.2769 },
+  { id: "shaaar", name: "عقبة شعار", route: "أبها / خميس مشيط إلى محايل", lat: 18.4214058, lng: 42.4555221 },
   { id: "aslan", name: "عقبة عسلان", route: "أبها إلى خميس البحر", lat: 18.3909, lng: 42.0572 },
-  { id: "dalaa", name: "عقبة ضلع", route: "أبها إلى جازان", lat: 18.1407, lng: 42.3979 },
+  { id: "dalaa", name: "عقبة ضلع", route: "أبها إلى جازان", lat: 18.1996557, lng: 42.5207894 },
 ];
+
+type CrossingPoint = (typeof DEFAULT_POINTS)[number];
+
+function configuredPoint(point: CrossingPoint): CrossingPoint {
+  return DEFAULT_POINTS.find((candidate) => candidate.id === point.id) ?? point;
+}
 
 function authorize(serviceSecret: string) {
   const configuredSecret = env.MUSIR_SERVICE_SECRET;
@@ -137,7 +143,7 @@ function publicTicket(ticket: {
     crossingPermitNumber: ticket.crossingPermitNumber,
     companyPermitExpiry: ticket.companyPermitExpiry,
     cargoType: ticket.cargoType,
-    crossingPoint: ticket.crossingPoint,
+    crossingPoint: configuredPoint(ticket.crossingPoint),
     issuedAt: ticket.issuedAt,
     expiresAt: effectiveExpiry(ticket),
     status: statusFor(ticket, nowMs),
@@ -152,7 +158,9 @@ export const seedCrossingPoints = mutation({
     authorize(args.serviceSecret);
     for (const point of DEFAULT_POINTS) {
       const existing = await ctx.db.query("crossingPoints").withIndex("by_external_id", (q) => q.eq("externalId", point.id)).unique();
-      if (!existing) await ctx.db.insert("crossingPoints", { externalId: point.id, name: point.name, route: point.route, lat: point.lat, lng: point.lng });
+      const values = { externalId: point.id, name: point.name, route: point.route, lat: point.lat, lng: point.lng };
+      if (existing) await ctx.db.replace("crossingPoints", existing._id, values);
+      else await ctx.db.insert("crossingPoints", values);
     }
     return null;
   },
@@ -164,7 +172,7 @@ export const getCrossingPoints = query({
   handler: async (ctx, args) => {
     authorize(args.serviceSecret);
     const points = await ctx.db.query("crossingPoints").take(100);
-    return points.map((point) => ({ id: point.externalId, name: point.name, route: point.route, lat: point.lat, lng: point.lng }));
+    return points.map((point) => configuredPoint({ id: point.externalId, name: point.name, route: point.route, lat: point.lat, lng: point.lng }));
   },
 });
 
@@ -318,9 +326,9 @@ export const adminDashboard = query({
         violations: violations.length,
       },
       vehicles,
-      violations: violations.map((item) => ({ id: item.externalId, plate: item.plate, crossingPoint: item.crossingPoint, ticketStatus: item.ticketStatus, ticketNumber: item.ticketNumber, createdAt: item.createdAt, reason: item.reason })),
-      crossingEvents: crossingEvents.map((item) => ({ id: item.externalId, plate: item.plate, crossingPoint: item.crossingPoint, ticketId: item.ticketExternalId, ticketNumber: item.ticketNumber, ticketStatus: item.ticketStatus, createdAt: item.createdAt })),
-      points: points.map((point) => ({ id: point.externalId, name: point.name, route: point.route, lat: point.lat, lng: point.lng })),
+      violations: violations.map((item) => ({ id: item.externalId, plate: item.plate, crossingPoint: configuredPoint(item.crossingPoint), ticketStatus: item.ticketStatus, ticketNumber: item.ticketNumber, createdAt: item.createdAt, reason: item.reason })),
+      crossingEvents: crossingEvents.map((item) => ({ id: item.externalId, plate: item.plate, crossingPoint: configuredPoint(item.crossingPoint), ticketId: item.ticketExternalId, ticketNumber: item.ticketNumber, ticketStatus: item.ticketStatus, createdAt: item.createdAt })),
+      points: points.map((point) => configuredPoint({ id: point.externalId, name: point.name, route: point.route, lat: point.lat, lng: point.lng })),
     };
   },
 });
@@ -332,7 +340,7 @@ export const recordCrossing = mutation({
     authorize(args.serviceSecret);
     const point = await ctx.db.query("crossingPoints").withIndex("by_external_id", (q) => q.eq("externalId", args.crossingPointExternalId)).unique();
     if (!point) throw new Error("Crossing point not found");
-    const crossingPoint = { id: point.externalId, name: point.name, route: point.route, lat: point.lat, lng: point.lng };
+    const crossingPoint = configuredPoint({ id: point.externalId, name: point.name, route: point.route, lat: point.lat, lng: point.lng });
     const ticket = await ctx.db.query("tickets").withIndex("by_plate_and_crossing_point_external_id", (q) => q.eq("truckPlateNumber", args.plate).eq("crossingPointExternalId", args.crossingPointExternalId)).order("desc").first();
     const ticketStatus = ticket ? statusFor(ticket, args.nowMs) : "none" as const;
     const event = {
