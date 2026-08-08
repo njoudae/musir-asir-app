@@ -10,7 +10,7 @@
   <link rel="icon" href="logo.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://unpkg.com">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="styles.css?v=6">
+  <link rel="stylesheet" href="styles.css?v=8">
 </head>
 <body>
   <div class="app-shell">
@@ -60,6 +60,7 @@
               <span dir="ltr">+966</span>
               <input id="phone" name="phone" inputmode="tel" autocomplete="tel" maxlength="10" placeholder="5XXXXXXXX" required>
             </div>
+            <p class="demo-hint">✦ قم بكتابة أي رقم جوال للدخول التجريبي <span dir="ltr">مثال: 500000000</span></p>
             <button class="primary-button full" type="submit">إنشاء رمز التحقق</button>
           </form>
           <p class="legal">بالمتابعة أنت توافق على استخدام بياناتك لإصدار التذكرة والتحقق عند نقاط العبور.</p>
@@ -89,6 +90,10 @@
         </div>
         <form class="surface form-card" id="profile-form">
           <div class="notice info">لن نستبدل هذه البيانات بنتائج قراءة الصور، لتقليل الأخطاء واستهلاك التحليل.</div>
+          <div class="demo-profile-panel">
+            <div><strong>بيانات الدخول التجريبية</strong><small>خالد أحمد التجريبي · 1000000000 · 2030-12-31</small></div>
+            <button class="secondary-button" type="button" id="fill-demo-profile">تعبئة البيانات التجريبية</button>
+          </div>
           <label for="profile-name">الاسم الكامل</label>
           <input id="profile-name" autocomplete="name" required placeholder="كما هو مسجل في الهوية">
           <label for="profile-id">رقم الهوية أو الإقامة</label>
@@ -135,8 +140,9 @@
             <div class="upload-card-head"><span class="document-icon">🪪</span><div><h3>الهوية أو الإقامة</h3><p>للمطابقة فقط؛ بيانات حسابك لها الأولوية</p></div><span class="status-chip idle">مطلوب</span></div>
             <div class="upload-preview"><span>ارفع صورة واضحة للمستند</span></div>
             <div class="upload-actions">
-              <label class="secondary-button">📷 الكاميرا<input type="file" accept="image/*" capture="environment" hidden></label>
+              <button class="secondary-button" type="button" data-camera-document="identity">📷 فتح الكاميرا</button>
               <label class="secondary-button">▧ الصور<input type="file" accept="image/*" hidden></label>
+              <button class="secondary-button demo-document-button" type="button" data-demo-document="identity">✦ إضافة صورة تجريبية</button>
             </div>
             <p class="upload-error"></p>
           </article>
@@ -145,8 +151,9 @@
             <div class="upload-card-head"><span class="document-icon">🚚</span><div><h3>رخصة سير الشاحنة</h3><p>رقم اللوحة ورخصة السير وتاريخ الانتهاء</p></div><span class="status-chip idle">مطلوب</span></div>
             <div class="upload-preview"><span>ارفع صورة واضحة للمستند</span></div>
             <div class="upload-actions">
-              <label class="secondary-button">📷 الكاميرا<input type="file" accept="image/*" capture="environment" hidden></label>
+              <button class="secondary-button" type="button" data-camera-document="vehicle_license">📷 فتح الكاميرا</button>
               <label class="secondary-button">▧ الصور<input type="file" accept="image/*" hidden></label>
+              <button class="secondary-button demo-document-button" type="button" data-demo-document="vehicle_license">✦ إضافة صورة تجريبية</button>
             </div>
             <p class="upload-error"></p>
           </article>
@@ -155,8 +162,9 @@
             <div class="upload-card-head"><span class="document-icon">🏢</span><div><h3>ترخيص الشركة</h3><p>اسم الشركة والتصريح ونوع الحمولة</p></div><span class="status-chip idle">مطلوب</span></div>
             <div class="upload-preview"><span>ارفع صورة واضحة للمستند</span></div>
             <div class="upload-actions">
-              <label class="secondary-button">📷 الكاميرا<input type="file" accept="image/*" capture="environment" hidden></label>
+              <button class="secondary-button" type="button" data-camera-document="company_permit">📷 فتح الكاميرا</button>
               <label class="secondary-button">▧ الصور<input type="file" accept="image/*" hidden></label>
+              <button class="secondary-button demo-document-button" type="button" data-demo-document="company_permit">✦ إضافة صورة تجريبية</button>
             </div>
             <p class="upload-error"></p>
           </article>
@@ -192,17 +200,6 @@
         <div class="date-banner"><span>📅</span><div><small>تاريخ الرحلة</small><strong id="trip-date"></strong></div></div>
         <form id="route-form">
           <div class="route-list" id="route-list"></div>
-          <label class="route-option custom-option">
-            <input type="radio" name="crossing-point" value="custom">
-            <span class="route-pin">＋</span>
-            <span><strong>إضافة نقطة عبور أخرى</strong><small>أدخل اسم النقطة وحدد موقعها الحالي</small></span>
-          </label>
-          <div class="surface custom-point-fields hidden" id="custom-point-fields">
-            <label for="custom-point-name">اسم نقطة العبور</label>
-            <input id="custom-point-name" placeholder="مثال: نقطة تفتيش طريق الساحل">
-            <button class="secondary-button full" id="use-current-location" type="button">⌖ استخدام موقعي الحالي</button>
-            <small id="custom-location-status" class="muted"></small>
-          </div>
           <button class="primary-button full issue-button" type="submit">إصدار تذكرة العبور</button>
         </form>
       </section>
@@ -233,11 +230,30 @@
     </main>
   </div>
 
+  <div class="camera-modal hidden" id="camera-modal" role="dialog" aria-modal="true" aria-labelledby="camera-title">
+    <div class="camera-sheet surface">
+      <div class="camera-head">
+        <div><span class="eyebrow">تصوير المستند</span><h2 id="camera-title">ضع المستند داخل الإطار</h2></div>
+        <button class="icon-button camera-close" id="camera-close" type="button" aria-label="إغلاق الكاميرا">×</button>
+      </div>
+      <div class="camera-viewport">
+        <video id="camera-video" autoplay muted playsinline></video>
+        <div class="camera-frame" aria-hidden="true"></div>
+      </div>
+      <p class="camera-help" id="camera-help">ثبّت الجوال واجعل جميع أطراف المستند ظاهرة بوضوح.</p>
+      <div class="camera-actions">
+        <button class="secondary-button" id="camera-cancel" type="button">إلغاء</button>
+        <button class="primary-button" id="camera-capture" type="button">📷 التقاط الصورة</button>
+      </div>
+      <canvas id="camera-canvas" hidden></canvas>
+    </div>
+  </div>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <div class="loading-overlay hidden" id="loading-overlay"><div class="spinner"></div><strong id="loading-message">جاري المعالجة...</strong></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="i18n.js"></script>
-  <script src="script.js" defer></script>
+  <script src="script.js?v=4" defer></script>
 </body>
 </html>

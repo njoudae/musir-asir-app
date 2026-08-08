@@ -4,7 +4,6 @@ import { crossingPointValidator, driverValidator } from "./schema";
 
 const DEFAULT_POINTS = [
   { id: "shaaar", name: "عقبة شعار", route: "أبها / خميس مشيط إلى محايل", lat: 18.4214058, lng: 42.4555221 },
-  { id: "aslan", name: "عقبة عسلان", route: "أبها إلى خميس البحر", lat: 18.3909, lng: 42.0572 },
   { id: "dalaa", name: "عقبة ضلع", route: "أبها إلى جازان", lat: 18.1996557, lng: 42.5207894 },
 ];
 
@@ -171,8 +170,7 @@ export const getCrossingPoints = query({
   returns: v.array(crossingPointValidator),
   handler: async (ctx, args) => {
     authorize(args.serviceSecret);
-    const points = await ctx.db.query("crossingPoints").take(100);
-    return points.map((point) => configuredPoint({ id: point.externalId, name: point.name, route: point.route, lat: point.lat, lng: point.lng }));
+    return DEFAULT_POINTS;
   },
 });
 
@@ -317,7 +315,6 @@ export const adminDashboard = query({
     const vehicles = tickets.map((ticket) => ({ ...publicTicket(ticket, args.nowMs), latestLocation: latestByTicket.get(ticket.externalId) ?? null }));
     const violations = await ctx.db.query("violations").withIndex("by_created_at").order("desc").take(500);
     const crossingEvents = await ctx.db.query("crossingEvents").withIndex("by_created_at").order("desc").take(100);
-    const points = await ctx.db.query("crossingPoints").take(100);
     return {
       stats: {
         totalTickets: tickets.length,
@@ -328,7 +325,7 @@ export const adminDashboard = query({
       vehicles,
       violations: violations.map((item) => ({ id: item.externalId, plate: item.plate, crossingPoint: configuredPoint(item.crossingPoint), ticketStatus: item.ticketStatus, ticketNumber: item.ticketNumber, createdAt: item.createdAt, reason: item.reason })),
       crossingEvents: crossingEvents.map((item) => ({ id: item.externalId, plate: item.plate, crossingPoint: configuredPoint(item.crossingPoint), ticketId: item.ticketExternalId, ticketNumber: item.ticketNumber, ticketStatus: item.ticketStatus, createdAt: item.createdAt })),
-      points: points.map((point) => configuredPoint({ id: point.externalId, name: point.name, route: point.route, lat: point.lat, lng: point.lng })),
+      points: DEFAULT_POINTS,
     };
   },
 });
@@ -338,9 +335,8 @@ export const recordCrossing = mutation({
   returns: v.any(),
   handler: async (ctx, args) => {
     authorize(args.serviceSecret);
-    const point = await ctx.db.query("crossingPoints").withIndex("by_external_id", (q) => q.eq("externalId", args.crossingPointExternalId)).unique();
-    if (!point) throw new Error("Crossing point not found");
-    const crossingPoint = configuredPoint({ id: point.externalId, name: point.name, route: point.route, lat: point.lat, lng: point.lng });
+    const crossingPoint = DEFAULT_POINTS.find((point) => point.id === args.crossingPointExternalId);
+    if (!crossingPoint) throw new Error("Crossing point not found");
     const ticket = await ctx.db.query("tickets").withIndex("by_plate_and_crossing_point_external_id", (q) => q.eq("truckPlateNumber", args.plate).eq("crossingPointExternalId", args.crossingPointExternalId)).order("desc").first();
     const ticketStatus = ticket ? statusFor(ticket, args.nowMs) : "none" as const;
     const event = {

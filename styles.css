@@ -122,6 +122,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--mint-dark); box-
 .phone-field:focus-within { border-color: var(--mint-dark); box-shadow: 0 0 0 4px rgba(32,215,170,.12); }
 .phone-field span { padding: 0 12px; color: #45616e; border-right: 1px solid var(--line); }
 .phone-field input { border: 0; border-radius: 0; direction: ltr; box-shadow: none; }
+.demo-hint { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 10px; margin: -7px 2px 14px; padding: 9px 11px; border: 1px solid #b8eadf; border-radius: 11px; color: #0b6e59; background: #effbf8; font-size: .76rem; line-height: 1.55; }
+.demo-hint span { color: #526f7b; font-weight: 700; }
 
 .primary-button, .secondary-button { min-height: 52px; display: inline-flex; gap: 8px; align-items: center; justify-content: center; padding: 12px 18px; border-radius: 14px; font-weight: 800; text-decoration: none; transition: transform .15s, filter .15s; }
 .primary-button { border: 0; color: #06231c; background: linear-gradient(135deg, #27e0b2, #54d8f0); box-shadow: 0 10px 24px rgba(32,215,170,.24); }
@@ -145,6 +147,11 @@ input:focus, select:focus, textarea:focus { border-color: var(--mint-dark); box-
 .form-card .primary-button { margin-top: 22px; }
 .otp-input { direction: ltr; height: 66px; text-align: center; font-size: 1.75rem; font-weight: 800; letter-spacing: .42em; }
 .demo-code { padding: 10px; border-radius: 12px; color: #73530c; text-align: center; background: #fff5d8; font-weight: 700; }
+.demo-profile-panel { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; padding: 12px; border: 1px dashed #91dccc; border-radius: 14px; background: #f2fcf9; }
+.demo-profile-panel div { display: grid; gap: 3px; }
+.demo-profile-panel strong { color: #0b705a; font-size: .86rem; }
+.demo-profile-panel small { color: #66808a; font-size: .72rem; }
+.demo-profile-panel .secondary-button { min-height: 40px; padding: 8px 12px; white-space: nowrap; font-size: .78rem; }
 
 .notice { padding: 13px 15px; border-radius: 14px; font-size: .9rem; line-height: 1.65; }
 .notice.info { color: #135c70; background: #e7f7fb; }
@@ -197,7 +204,21 @@ input:focus, select:focus, textarea:focus { border-color: var(--mint-dark); box-
 .upload-preview img { width: 100%; height: 100%; object-fit: cover; }
 .upload-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .upload-actions label { margin: 0; font-size: .84rem; cursor: pointer; }
+.demo-document-button { grid-column: 1 / -1; min-height: 44px; border-color: #82dbc5; color: #087158; background: #effbf8; font-size: .82rem; }
+.demo-document-button:disabled { cursor: wait; opacity: .62; }
 .upload-error { min-height: 18px; margin-top: 8px !important; color: var(--danger) !important; }
+.camera-open { overflow: hidden; }
+.camera-modal { position: fixed; z-index: 3200; inset: 0; display: grid; place-items: center; padding: 16px; background: rgba(3,18,28,.86); backdrop-filter: blur(8px); }
+.camera-sheet { width: min(100%, 720px); padding: 18px; }
+.camera-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 14px; }
+.camera-head h2 { margin: 3px 0 0; font-size: 1.2rem; }
+.camera-close { color: #fff; background: #173647; font-size: 1.6rem; }
+.camera-viewport { aspect-ratio: 4 / 3; position: relative; border-radius: 18px; background: #071b2a; overflow: hidden; }
+.camera-viewport video { width: 100%; height: 100%; object-fit: cover; }
+.camera-frame { position: absolute; inset: 9%; border: 3px solid rgba(39,224,178,.92); border-radius: 12px; box-shadow: 0 0 0 999px rgba(2,15,23,.2); pointer-events: none; }
+.camera-help { margin: 12px 0; color: #607883; text-align: center; font-size: .82rem; }
+.camera-actions { display: grid; grid-template-columns: minmax(110px,.7fr) 1.3fr; gap: 10px; }
+.camera-actions button { width: 100%; }
 .extraction-action { max-width: 900px; display: flex; align-items: center; justify-content: space-between; gap: 22px; margin: 22px auto 0; padding: 20px; border-color: #9ae4d2; background: linear-gradient(135deg, #fff 0%, #effcf8 100%); }
 .extraction-action h2 { margin: 5px 0 4px; font-size: 1.15rem; }
 .extraction-action p { margin: 0; }
@@ -279,6 +300,12 @@ input:focus, select:focus, textarea:focus { border-color: var(--mint-dark); box-
   .brand-name { display: none; }
   .screen { padding: 16px 12px 88px; }
   .auth-card { padding: 21px; }
+  .demo-hint { display: grid; }
+  .demo-profile-panel { align-items: stretch; flex-direction: column; }
+  .demo-profile-panel .secondary-button { width: 100%; }
+  .camera-modal { align-items: end; padding: 0; }
+  .camera-sheet { padding: 14px; border-radius: 22px 22px 0 0; }
+  .camera-viewport { aspect-ratio: 3 / 4; }
   .dashboard-hero { margin: -16px -12px 0; padding: 20px 14px 44px; }
   .dashboard-hero h1 { font-size: 1.42rem; }
   .dashboard-hero p { max-width: 260px; font-size: .78rem; line-height: 1.45; }

@@ -21,6 +21,18 @@ const REQUIRED_BY_DOCUMENT = {
   company_permit: ['companyName', 'crossingPermitNumber', 'companyPermitExpiry', 'cargoType']
 };
 
+const DEMO_PROFILE = {
+  fullName: 'خالد أحمد التجريبي',
+  nationalId: '1000000000',
+  nationalIdExpiry: '2030-12-31'
+};
+
+const DEMO_DOCUMENTS = {
+  identity: { url: 'demo-identity.png', filename: 'هوية-تجريبية.png' },
+  vehicle_license: { url: 'demo-vehicle-license.png', filename: 'رخصة-سير-تجريبية.png' },
+  company_permit: { url: 'demo-company-permit.png', filename: 'ترخيص-شركة-تجريبي.png' }
+};
+
 const state = {
   token: localStorage.getItem('musir-token') || '',
   phone: '',
@@ -34,9 +46,15 @@ const state = {
   customLocation: null,
   map: null,
   marker: null,
+  destinationMarker: null,
   routeLine: null,
+  routeRequestId: 0,
+  lastRouteOrigin: null,
+  lastRouteRequestedAt: 0,
   watchId: null,
   lastLocationSentAt: 0,
+  cameraStream: null,
+  cameraTargetCard: null,
   navigation: []
 };
 
@@ -71,26 +89,35 @@ function bindEvents() {
   $('#resend-otp').addEventListener('click', () => requestOtp(null, state.phone));
   $('#nafath-button').addEventListener('click', startNafath);
   $('#profile-form').addEventListener('submit', saveProfile);
+  $('#fill-demo-profile').addEventListener('click', fillDemoProfile);
   $('#new-ticket-button').addEventListener('click', startNewTicket);
   $('#extract-documents').addEventListener('click', analyzeDocuments);
   $('#documents-continue').addEventListener('click', continueFromDocuments);
   $('#documents-reextract').addEventListener('click', analyzeDocuments);
   $('#route-form').addEventListener('submit', issueTicket);
-  $('#use-current-location').addEventListener('click', getCustomLocation);
   $('#open-tracking').addEventListener('click', () => openTracking(state.currentTicket));
   $('#success-home').addEventListener('click', async () => { await loadAccount(); showScreen('dashboard'); });
   $('#stop-tracking').addEventListener('click', stopTracking);
   $('#logout-button').addEventListener('click', logout);
   $('#back-button').addEventListener('click', navigateBack);
+  $('#camera-close').addEventListener('click', closeCamera);
+  $('#camera-cancel').addEventListener('click', closeCamera);
+  $('#camera-capture').addEventListener('click', captureCameraImage);
+  $('#camera-modal').addEventListener('click', (event) => {
+    if (event.target === $('#camera-modal')) closeCamera();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !$('#camera-modal').classList.contains('hidden')) closeCamera();
+  });
 
   $$('.upload-card input[type="file"]').forEach((input) => {
     input.addEventListener('change', () => handleDocumentFile(input.closest('.upload-card'), input.files[0]));
   });
-
-  document.addEventListener('change', (event) => {
-    if (event.target.name === 'crossing-point') {
-      $('#custom-point-fields').classList.toggle('hidden', event.target.value !== 'custom');
-    }
+  $$('[data-demo-document]').forEach((button) => {
+    button.addEventListener('click', () => loadDemoDocument(button));
+  });
+  $$('[data-camera-document]').forEach((button) => {
+    button.addEventListener('click', () => openCamera(button));
   });
 
   $('#ticket-list').addEventListener('click', (event) => {
@@ -111,6 +138,79 @@ function bindEvents() {
     if (state.points.length) renderRoutes();
     if (Object.keys(state.documentResults).length) renderExtractedFields();
   });
+}
+
+async function openCamera(button) {
+  const card = button.closest('.upload-card');
+  if (!card) return;
+  if (!navigator.mediaDevices?.getUserMedia) return openNativeCamera(card);
+
+  state.cameraTargetCard = card;
+  const modal = $('#camera-modal');
+  const help = $('#camera-help');
+  const captureButton = $('#camera-capture');
+  $('#camera-title').textContent = `تصوير ${$('h3', card).textContent}`;
+  help.textContent = t('جاري تشغيل الكاميرا...');
+  captureButton.disabled = true;
+  modal.classList.remove('hidden');
+  document.body.classList.add('camera-open');
+
+  try {
+    state.cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+      audio: false
+    });
+    const video = $('#camera-video');
+    video.srcObject = state.cameraStream;
+    await video.play();
+    help.textContent = t('ثبّت الجوال واجعل جميع أطراف المستند ظاهرة بوضوح.');
+    captureButton.disabled = false;
+  } catch (error) {
+    closeCamera();
+    const denied = error?.name === 'NotAllowedError' || error?.name === 'SecurityError';
+    toast(denied ? 'اسمح بالوصول إلى الكاميرا من إعدادات المتصفح ثم حاول مجددًا' : 'تعذر تشغيل الكاميرا على هذا الجهاز', 'error');
+  }
+}
+
+function openNativeCamera(card) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.setAttribute('capture', 'environment');
+  input.addEventListener('change', () => handleDocumentFile(card, input.files[0]), { once: true });
+  input.click();
+}
+
+async function captureCameraImage() {
+  const video = $('#camera-video');
+  const card = state.cameraTargetCard;
+  if (!card || !video.videoWidth || !video.videoHeight) return toast('انتظر حتى تجهز الكاميرا', 'error');
+  const canvas = $('#camera-canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+  if (!blob) return toast('تعذر التقاط الصورة، حاول مجددًا', 'error');
+  const file = new File([blob], `${card.dataset.document}-${Date.now()}.jpg`, { type: 'image/jpeg' });
+  closeCamera();
+  await handleDocumentFile(card, file);
+  toast('تم التقاط صورة المستند', 'success');
+}
+
+function closeCamera() {
+  state.cameraStream?.getTracks().forEach((track) => track.stop());
+  state.cameraStream = null;
+  state.cameraTargetCard = null;
+  $('#camera-video').srcObject = null;
+  $('#camera-modal').classList.add('hidden');
+  document.body.classList.remove('camera-open');
+}
+
+function fillDemoProfile() {
+  $('#profile-name').value = DEMO_PROFILE.fullName;
+  $('#profile-id').value = DEMO_PROFILE.nationalId;
+  $('#profile-expiry').value = DEMO_PROFILE.nationalIdExpiry;
+  toast('تمت تعبئة البيانات التجريبية', 'success');
 }
 
 async function api(endpoint, options = {}) {
@@ -350,6 +450,28 @@ async function handleDocumentFile(card, file) {
   updateExtractionAction();
 }
 
+async function loadDemoDocument(button) {
+  const demo = DEMO_DOCUMENTS[button.dataset.demoDocument];
+  const card = button.closest('.upload-card');
+  if (!demo || !card) return;
+  button.disabled = true;
+  const originalText = button.textContent;
+  button.textContent = t('جاري إضافة الصورة...');
+  try {
+    const response = await fetch(demo.url, { cache: 'no-store' });
+    if (!response.ok) throw new Error('تعذر تحميل الصورة التجريبية');
+    const blob = await response.blob();
+    const file = new File([blob], demo.filename, { type: blob.type || 'image/png' });
+    await handleDocumentFile(card, file);
+    toast('تمت إضافة الصورة التجريبية', 'success');
+  } catch (error) {
+    markUploadError(card, error.message || 'تعذر تحميل الصورة التجريبية');
+  } finally {
+    button.disabled = false;
+    button.textContent = originalText;
+  }
+}
+
 function updateExtractionAction() {
   const hasAllFiles = Object.keys(REQUIRED_BY_DOCUMENT).every((type) => state.files[type]?.dataUrl);
   const hasAllResults = Object.keys(REQUIRED_BY_DOCUMENT).every((type) => state.documentResults[type]);
@@ -358,6 +480,8 @@ function updateExtractionAction() {
 
 function setDocumentInputsDisabled(disabled) {
   $$('.upload-card input[type="file"]').forEach((input) => { input.disabled = disabled; });
+  $$('[data-demo-document]').forEach((button) => { button.disabled = disabled; });
+  $$('[data-camera-document]').forEach((button) => { button.disabled = disabled; });
   $('#extract-documents').disabled = disabled;
   $('#documents-reextract').disabled = disabled;
 }
@@ -574,6 +698,12 @@ function initializeMap(ticket) {
     state.map.remove();
     state.map = null;
   }
+  state.marker = null;
+  state.destinationMarker = null;
+  state.routeLine = null;
+  state.routeRequestId += 1;
+  state.lastRouteOrigin = null;
+  state.lastRouteRequestedAt = 0;
   if (!window.L) {
     $('#tracking-state').textContent = t('تعذر تحميل الخريطة');
     $('#tracking-map').innerHTML = `<div class="map-fallback"><span>⌖</span><strong>${t('الخريطة غير متاحة دون اتصال')}</strong><small>${t('سيستمر حفظ التذكرة، وتظهر الخريطة عند توفر اتصال بالإنترنت.')}</small></div>`;
@@ -581,7 +711,64 @@ function initializeMap(ticket) {
   }
   state.map = L.map('tracking-map').setView(destination, 10);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(state.map);
-  L.marker(destination).addTo(state.map).bindPopup(escapeHtml(ticket.crossingPoint.name));
+  state.destinationMarker = L.marker(destination)
+    .addTo(state.map)
+    .bindTooltip(escapeHtml(ticket.crossingPoint.name), { direction: 'top', offset: [0, -12] })
+    .bindPopup(escapeHtml(ticket.crossingPoint.name));
+}
+
+function distanceBetween(first, second) {
+  const toRadians = (degrees) => degrees * Math.PI / 180;
+  const lat1 = toRadians(first[0]);
+  const lat2 = toRadians(second[0]);
+  const deltaLat = lat2 - lat1;
+  const deltaLng = toRadians(second[1] - first[1]);
+  const a = Math.sin(deltaLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLng / 2) ** 2;
+  return 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function drawRoute(coordinates, fallback = false) {
+  if (!state.map || !window.L || coordinates.length < 2) return;
+  if (state.routeLine) state.routeLine.remove();
+  state.routeLine = L.polyline(coordinates, {
+    color: fallback ? '#6b8793' : '#13b98e',
+    weight: fallback ? 4 : 6,
+    opacity: .92,
+    dashArray: fallback ? '8 10' : null,
+    lineCap: 'round',
+    lineJoin: 'round'
+  }).addTo(state.map);
+  state.map.fitBounds(state.routeLine.getBounds(), { padding: [38, 38], maxZoom: 15 });
+}
+
+async function updateRoadRoute(origin, destination) {
+  if (!state.map || !origin.every(Number.isFinite) || !destination.every(Number.isFinite)) return;
+  const now = Date.now();
+  const moved = state.lastRouteOrigin ? distanceBetween(state.lastRouteOrigin, origin) : Infinity;
+  if (moved < 150 && now - state.lastRouteRequestedAt < 45000) return;
+
+  state.lastRouteOrigin = origin;
+  state.lastRouteRequestedAt = now;
+  const requestId = ++state.routeRequestId;
+  if (!state.routeLine) drawRoute([origin, destination], true);
+  const coordinates = `${origin[1]},${origin[0]};${destination[1]},${destination[0]}`;
+  const url = `https://router.project-osrm.org/route/v1/driving/${coordinates}?overview=full&geometries=geojson&steps=false`;
+
+  try {
+    const response = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (!response.ok) throw new Error('Route service unavailable');
+    const result = await response.json();
+    const geometry = result.code === 'Ok' ? result.routes?.[0]?.geometry?.coordinates : null;
+    if (!Array.isArray(geometry) || geometry.length < 2) throw new Error('Route not found');
+    if (requestId !== state.routeRequestId) return;
+    const roadCoordinates = geometry
+      .map(([lng, lat]) => [Number(lat), Number(lng)])
+      .filter((point) => point.every(Number.isFinite));
+    drawRoute(roadCoordinates);
+  } catch (error) {
+    console.warn(error);
+    if (requestId === state.routeRequestId && !state.routeLine) drawRoute([origin, destination], true);
+  }
 }
 
 function startTracking(ticket) {
@@ -600,9 +787,7 @@ function startTracking(ticket) {
     }
     const destination = [Number(ticket.crossingPoint.lat), Number(ticket.crossingPoint.lng)];
     if (state.map && destination.every(Number.isFinite)) {
-      if (state.routeLine) state.routeLine.remove();
-      state.routeLine = L.polyline([point, destination], { color: '#13b98e', weight: 5, dashArray: '8 10' }).addTo(state.map);
-      state.map.fitBounds(state.routeLine.getBounds(), { padding: [40, 40], maxZoom: 14 });
+      updateRoadRoute(point, destination);
     } else if (state.map) state.map.setView(point, 14);
     if (Date.now() - state.lastLocationSentAt > 15000) {
       state.lastLocationSentAt = Date.now();
@@ -627,7 +812,11 @@ function stopTracking(updateText = true, notifyBackend = true) {
   if (state.watchId !== null) navigator.geolocation.clearWatch(state.watchId);
   state.watchId = null;
   state.marker = null;
+  state.destinationMarker = null;
   state.routeLine = null;
+  state.routeRequestId += 1;
+  state.lastRouteOrigin = null;
+  state.lastRouteRequestedAt = 0;
   if (notifyBackend && wasTracking) setTrackingStatus(state.currentTicket, false);
   if (updateText && $('#tracking-state')) $('#tracking-state').textContent = t('تم إيقاف التتبع');
 }

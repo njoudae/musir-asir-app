@@ -57,6 +57,11 @@ test('serves only the new public application files', async () => {
   const brandLogo = await fetch(`${baseUrl}/musir-logo.jpg`);
   assert.equal(brandLogo.status, 200);
   assert.match(brandLogo.headers.get('content-type'), /^image\/jpeg/);
+  for (const demoImage of ['demo-identity.png', 'demo-vehicle-license.png', 'demo-company-permit.png']) {
+    const response = await fetch(`${baseUrl}/${demoImage}`);
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get('content-type'), /^image\/png/);
+  }
   const legacy = await fetch(`${baseUrl}/configs.js`);
   assert.equal(legacy.status, 403);
   const privateStore = await fetch(`${baseUrl}/data/store.json`);

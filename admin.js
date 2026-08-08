@@ -142,7 +142,12 @@ function renderMap() {
   adminState.markers.clearLayers();
   const bounds = [];
   for (const point of adminState.data.points) {
-    L.circleMarker([point.lat, point.lng], { radius: 8, color: '#087157', fillColor: '#20d7aa', fillOpacity: .7 }).addTo(adminState.markers).bindPopup(escapeHtml(point.name));
+    const pointName = escapeHtml(t(point.name));
+    L.circleMarker([point.lat, point.lng], { radius: 8, color: '#087157', fillColor: '#20d7aa', fillOpacity: .7 })
+      .addTo(adminState.markers)
+      .bindTooltip(pointName, { direction: 'top', offset: [0, -8] })
+      .bindPopup(pointName);
+    bounds.push([point.lat, point.lng]);
   }
   for (const vehicle of adminState.data.vehicles) {
     const location = vehicle.latestLocation;
