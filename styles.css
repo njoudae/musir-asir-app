@@ -284,7 +284,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--mint-dark); box-
   .auth-screen { display: none; }
   .auth-screen.active { display: grid; grid-template-columns: minmax(300px, 520px) minmax(340px, 440px); gap: 60px; place-content: center; align-items: center; }
   .auth-hero { margin: 0; text-align: right; }
-  .brand-mark { margin-right: 0; }
+  .brand-logo-hero { margin-inline-start: 0; margin-inline-end: auto; }
+  .brand-mark { margin-inline-start: 0; margin-inline-end: auto; }
   .auth-hero p { margin-right: 0; }
   .auth-card { width: 100%; }
   .dashboard-hero { padding-inline: max(32px, calc((100vw - 900px) / 2)); }
