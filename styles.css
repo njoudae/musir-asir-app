@@ -285,6 +285,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--mint-dark); box-
   .auth-screen.active { display: grid; grid-template-columns: minmax(300px, 520px) minmax(340px, 440px); gap: 60px; place-content: center; align-items: center; }
   .auth-hero { margin: 0; text-align: right; }
   .brand-logo-hero { margin-inline-start: 0; margin-inline-end: auto; }
+  [dir="rtl"] .brand-logo-hero { margin-right: 0; margin-left: auto; }
+  [dir="ltr"] .brand-logo-hero { margin-left: 0; margin-right: auto; }
   .brand-mark { margin-inline-start: 0; margin-inline-end: auto; }
   .auth-hero p { margin-right: 0; }
   .auth-card { width: 100%; }
